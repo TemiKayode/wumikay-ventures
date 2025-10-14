@@ -81,15 +81,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSwitchToRegister }) =>
             Register here
           </button>
         </p>
-        <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-          <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
-            <strong>Demo Login:</strong>
-          </p>
-          <p style={{ fontSize: '0.8rem', color: '#999' }}>
-            Email: demo@wumikay.com<br/>
-            Password: demo123
-          </p>
-        </div>
       </div>
     </div>
   )
