@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { supabase, Product, Order, User } from './lib/supabase'
-import { populateDatabase } from './populateDatabase'
 import { printReceipt, generateReceiptData } from './utils/receiptPrinter'
 import './App.css'
 
@@ -43,8 +42,6 @@ function App() {
   // Load products on component mount
   useEffect(() => {
     loadProducts()
-    // Populate database with sample data if needed
-    populateDatabase()
   }, [])
 
   // Load orders when user changes
