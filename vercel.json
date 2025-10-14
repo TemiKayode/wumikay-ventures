@@ -1,8 +1,13 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm install --audit=false",
+  "installCommand": "npm install --audit=false --fund=false",
   "framework": "create-react-app",
   "env": {
     "NODE_ENV": "production"
+  },
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
   }
 }

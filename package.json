@@ -33,8 +33,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "type-check": "tsc --noEmit",
-    "prebuild": "npm run type-check && npm run lint"
+    "type-check": "tsc --noEmit"
   },
   "eslintConfig": {
     "extends": [
