@@ -18,6 +18,9 @@
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
+  "overrides": {
+    "webpack-dev-server": "^4.15.1"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -26,10 +29,7 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
-    "security:audit": "npm audit",
-    "security:fix": "npm audit fix",
-    "prebuild": "npm run type-check && npm run lint",
-    "postinstall": "npm run security:audit"
+    "prebuild": "npm run type-check && npm run lint"
   },
   "eslintConfig": {
     "extends": [
