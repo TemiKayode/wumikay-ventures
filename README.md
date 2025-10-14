@@ -1,46 +1,125 @@
-# Getting Started with Create React App
+# WumiKay Ventures - Order Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, secure order management system built with React, TypeScript, and Supabase for WumiKay Ventures beverage business.
 
-## Available Scripts
+## 🚀 Features
 
-In the project directory, you can run:
+- **Product Management**: Add, edit, and manage beverage products
+- **Order Processing**: Complete order management with receipt printing
+- **Customer Management**: Track customer information and order history
+- **Real-time Dashboard**: Live statistics and order monitoring
+- **Secure Authentication**: User login and role-based access
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Receipt Printing**: Automatic receipt generation for orders
 
-### `npm start`
+## 🛡️ Security Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **Environment Variables**: All sensitive data stored in environment variables
+- **Row Level Security (RLS)**: Database-level security policies
+- **Input Validation**: Comprehensive form validation
+- **HTTPS Only**: Secure data transmission
+- **No Hardcoded Secrets**: All API keys and credentials externalized
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 🛠️ Tech Stack
 
-### `npm test`
+- **Frontend**: React 18, TypeScript, CSS3
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **State Management**: React Hooks
+- **Styling**: Custom CSS with responsive design
+- **Build Tool**: Create React App
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 📋 Prerequisites
 
-### `npm run build`
+- Node.js 16+ 
+- npm or yarn
+- Supabase account
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🚀 Quick Start
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd wumikay-ventures
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### `npm run eject`
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory:
+   ```env
+   REACT_APP_SUPABASE_URL=your_supabase_url
+   REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+4. **Start the development server**
+   ```bash
+   npm start
+   ```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+5. **Open your browser**
+   Navigate to `http://localhost:3000`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 🗄️ Database Setup
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+The application uses Supabase as the backend. The database schema includes:
 
-## Learn More
+- **Products**: Beverage inventory management
+- **Orders**: Order tracking and management
+- **Order Items**: Individual order line items
+- **Users**: User authentication and management
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Database setup is handled automatically through the application.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🔐 Security Considerations
+
+- **API Keys**: Never commit API keys to version control
+- **Environment Variables**: Use `.env.local` for local development
+- **RLS Policies**: Database access is controlled by Row Level Security
+- **Input Sanitization**: All user inputs are validated and sanitized
+- **HTTPS**: Always use HTTPS in production
+
+## 📱 Usage
+
+1. **Login**: Use the demo credentials or create a new account
+2. **Products**: Browse and manage beverage inventory
+3. **Orders**: Process customer orders with receipt printing
+4. **Dashboard**: Monitor business statistics and recent orders
+5. **Settings**: Configure business information and preferences
+
+## 🚀 Deployment
+
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to your hosting platform**
+   - Vercel (recommended)
+   - Netlify
+   - AWS S3 + CloudFront
+   - Any static hosting service
+
+3. **Configure environment variables** in your hosting platform
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is proprietary software for WumiKay Ventures.
+
+## 🆘 Support
+
+For support and questions, contact the development team.
+
+---
+
+**⚠️ Security Notice**: This application handles sensitive business data. Always follow security best practices and keep your API keys secure.
