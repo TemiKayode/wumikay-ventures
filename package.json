@@ -19,7 +19,12 @@
     "web-vitals": "^2.1.4"
   },
   "overrides": {
-    "webpack-dev-server": "^4.15.1"
+    "webpack-dev-server": "^4.15.1",
+    "webpack": "^5.88.0"
+  },
+  "resolutions": {
+    "webpack-dev-server": "^4.15.1",
+    "webpack": "^5.88.0"
   },
   "scripts": {
     "start": "react-scripts start",

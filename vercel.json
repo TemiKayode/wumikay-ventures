@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --audit=false",
+  "framework": "create-react-app",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
