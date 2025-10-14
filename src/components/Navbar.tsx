@@ -17,22 +17,38 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount
   }
 
   return (
-    <nav className="navbar">
-      <div className="navbar-brand">
-        <img src="/logo.png" alt="Wumikay Ventures" className="navbar-logo" />
-        <span className="navbar-title">Wumikay Ventures</span>
-      </div>
-      
-      {/* Mobile menu button */}
-      <button 
-        className="mobile-menu-btn"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        aria-label="Toggle menu"
-      >
-        ☰
-      </button>
-      
-      <div className={`navbar-nav ${isMobileMenuOpen ? 'mobile-nav-open' : ''}`}>
+    <>
+      <nav className="navbar">
+        {/* Mobile menu button - moved to top left */}
+        <button 
+          className="mobile-menu-btn"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className={`hamburger ${isMobileMenuOpen ? 'hamburger-open' : ''}`}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        
+        <div className="navbar-brand">
+          <img src="/logo.png" alt="Wumikay Ventures" className="navbar-logo" />
+          <span className="navbar-title">Wumikay Ventures</span>
+        </div>
+        
+        <div className={`navbar-nav ${isMobileMenuOpen ? 'mobile-nav-open' : ''}`}>
+        {/* Mobile menu close button */}
+        {isMobileMenuOpen && (
+          <button 
+            className="mobile-menu-close"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <span className="close-icon">×</span>
+          </button>
+        )}
+        
         {user ? (
           <>
             <button 
@@ -109,8 +125,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount
             </button>
           </>
         )}
-      </div>
-    </nav>
+        </div>
+      </nav>
+      
+      {/* Mobile menu backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className={`mobile-menu-backdrop ${isMobileMenuOpen ? 'mobile-nav-open' : ''}`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+    </>
   )
 }
 
