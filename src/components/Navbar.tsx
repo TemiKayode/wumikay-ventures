@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { User } from '../lib/supabase'
 
 interface NavbarProps {
@@ -9,6 +9,13 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const handleViewChange = (view: 'login' | 'register' | 'dashboard' | 'products' | 'product-management' | 'orders' | 'customers' | 'reports' | 'settings') => {
+    onViewChange(view)
+    setIsMobileMenuOpen(false)
+  }
+
   return (
     <nav className="navbar">
       <div className="navbar-brand">
@@ -16,54 +23,63 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount
         <span className="navbar-title">Wumikay Ventures</span>
       </div>
       
-      <div className="navbar-nav">
+      {/* Mobile menu button */}
+      <button 
+        className="mobile-menu-btn"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        aria-label="Toggle menu"
+      >
+        ☰
+      </button>
+      
+      <div className={`navbar-nav ${isMobileMenuOpen ? 'mobile-nav-open' : ''}`}>
         {user ? (
           <>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('dashboard')}
+              onClick={() => handleViewChange('dashboard')}
             >
               📊 Dashboard
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('products')}
+              onClick={() => handleViewChange('products')}
             >
               🛍️ Products
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('product-management')}
+              onClick={() => handleViewChange('product-management')}
             >
               📦 Manage Products
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('orders')}
+              onClick={() => handleViewChange('orders')}
             >
               📋 Orders
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('customers')}
+              onClick={() => handleViewChange('customers')}
             >
               👥 Customers
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('reports')}
+              onClick={() => handleViewChange('reports')}
             >
               📈 Reports
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('settings')}
+              onClick={() => handleViewChange('settings')}
             >
               ⚙️ Settings
             </button>
             <button 
               className="nav-link cart-link"
-              onClick={() => onViewChange('products')}
+              onClick={() => handleViewChange('products')}
             >
               🛒 Cart ({cartCount})
             </button>
@@ -81,13 +97,13 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount
           <>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('login')}
+              onClick={() => handleViewChange('login')}
             >
               Login
             </button>
             <button 
               className="nav-link"
-              onClick={() => onViewChange('register')}
+              onClick={() => handleViewChange('register')}
             >
               Register
             </button>
