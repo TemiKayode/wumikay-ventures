@@ -1,14 +1,16 @@
 import React, { useState } from 'react'
-import { User } from '../lib/supabase'
+import { User } from '../lib/api'
 
 interface NavbarProps {
   user: User | null
   onLogout: () => void
   onViewChange: (view: 'login' | 'register' | 'dashboard' | 'products' | 'product-management' | 'orders' | 'customers' | 'reports' | 'settings') => void
   cartCount: number
+  companyLogo?: string
+  brandName?: string
 }
 
-const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount }) => {
+const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount, companyLogo, brandName }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleViewChange = (view: 'login' | 'register' | 'dashboard' | 'products' | 'product-management' | 'orders' | 'customers' | 'reports' | 'settings') => {
@@ -33,8 +35,11 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onViewChange, cartCount
         </button>
         
         <div className="navbar-brand">
-          <img src="/logo.png" alt="Wumikay Ventures" className="navbar-logo" />
-          <span className="navbar-title">Wumikay Ventures</span>
+          <img src={companyLogo || '/logo.png'} alt={brandName || 'Wumikay Ventures'} className="navbar-logo" onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+          }} />
+          <span className="navbar-title">{brandName || 'Wumikay Ventures'}</span>
         </div>
         
         <div className={`navbar-nav ${isMobileMenuOpen ? 'mobile-nav-open' : ''}`}>

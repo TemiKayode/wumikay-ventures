@@ -69,4 +69,4 @@ If you discover a security vulnerability, please:
 
 This security policy will be updated as needed to address new threats and vulnerabilities.
 
-Last updated: October 2024
+Last updated: January 2026

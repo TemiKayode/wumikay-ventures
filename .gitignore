@@ -8,11 +8,15 @@ package-lock.json
 # Production builds
 build/
 dist/
+dist-live/
+dist-server/
+server-bundle/
 .next/
 out/
 
-# Environment variables
+# Environment variables (never commit secrets)
 .env
+server/.env
 .env.local
 .env.development.local
 .env.test.local

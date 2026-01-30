@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react'
-import { Product } from '../lib/supabase'
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { Product } from '../lib/api'
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
+import Tooltip from './Tooltip'
 
 interface ProductSearchGridProps {
   products: Product[]
@@ -9,7 +11,47 @@ interface ProductSearchGridProps {
 const ProductSearchGrid: React.FC<ProductSearchGridProps> = ({ products, onAddToCart }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [showAll, setShowAll] = useState(false)
+  const [showAll, setShowAll] = useState(true) // Show all products by default
+  const [barcodeMode, setBarcodeMode] = useState(false)
+  const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle barcode scan
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    console.log('Barcode scanned:', barcode)
+    
+    // Search for product by barcode or name
+    const product = products.find(p => 
+      p.barcode === barcode || 
+      p.name.toLowerCase() === barcode.toLowerCase() ||
+      p.name.toLowerCase().includes(barcode.toLowerCase())
+    )
+    
+    if (product) {
+      onAddToCart(product)
+      setLastScannedProduct(product)
+      // Show brief feedback
+      setTimeout(() => setLastScannedProduct(null), 2000)
+    } else {
+      // If no exact match, set as search term
+      setSearchTerm(barcode)
+    }
+  }, [products, onAddToCart])
+
+  // Use barcode scanner hook
+  useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    enabled: barcodeMode,
+    minLength: 3,
+    maxDelay: 100
+  })
+
+  // Focus search input on mount
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [])
 
   const formatPrice = (price: number) => {
     return `₦${price.toLocaleString()}`
@@ -52,13 +94,66 @@ const ProductSearchGrid: React.FC<ProductSearchGridProps> = ({ products, onAddTo
       {/* Search and Filter Controls */}
       <div className="product-search-container">
         <div className="search-filters">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search products by name, description, brand, or category..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input barcode-enabled"
+              placeholder={barcodeMode ? "📷 Scan barcode or type to search..." : "Search products by name, description, brand, or category..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchTerm.length >= 3) {
+                  handleBarcodeScan(searchTerm)
+                  setSearchTerm('')
+                }
+              }}
+              style={{
+                borderColor: barcodeMode ? '#10b981' : undefined,
+                boxShadow: barcodeMode ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : undefined
+              }}
+            />
+            {lastScannedProduct && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '0 0 8px 8px',
+                fontSize: '14px',
+                fontWeight: 500,
+                zIndex: 10,
+                animation: 'fadeIn 0.3s ease'
+              }}>
+                ✅ Added: {lastScannedProduct.name}
+              </div>
+            )}
+          </div>
+          
+          <Tooltip text={barcodeMode ? 'Disable barcode scanner mode' : 'Enable barcode scanner mode'} position="bottom">
+            <button
+              type="button"
+              onClick={() => setBarcodeMode(!barcodeMode)}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: barcodeMode ? '#10b981' : '#f3f4f6',
+                color: barcodeMode ? 'white' : '#4b5563',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              📷 {barcodeMode ? 'ON' : 'OFF'}
+            </button>
+          </Tooltip>
           
           <select
             className="category-filter"
@@ -108,17 +203,15 @@ const ProductSearchGrid: React.FC<ProductSearchGridProps> = ({ products, onAddTo
             
             <div className="product-details">
               <div className="product-price">{formatPrice(product.price)}</div>
-              <div className="product-stock">
+              <div className={`product-stock ${product.quantity <= 0 ? 'out-of-stock' : ''}`}>
                 Stock: {product.quantity} units
               </div>
               <div className="product-category">
-                Category: {product.category}
+                Category: {product.category || '—'}
               </div>
-              {product.brand && (
-                <div className="product-brand">
-                  Brand: {product.brand}
-                </div>
-              )}
+              <div className="product-brand">
+                Brand: {product.brand || '—'}
+              </div>
             </div>
             
             <div className="product-actions">
@@ -135,7 +228,7 @@ const ProductSearchGrid: React.FC<ProductSearchGridProps> = ({ products, onAddTo
         
         {filteredProducts.length === 0 && (
           <div className="text-center" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
-            <img src="/logo.png" alt="No products" style={{ width: '60px', height: '60px', opacity: 0.3, marginBottom: '1rem' }} />
+            <img src={((): string => { try { const s = localStorage.getItem('wumikay-settings'); if (s) { const p = JSON.parse(s); return p.logoUrl || (p.companyInfo && p.companyInfo.logoUrl) || '/logo.png' } } catch(e){} return '/logo.png' })()} alt="No products" style={{ width: '60px', height: '60px', opacity: 0.3, marginBottom: '1rem' }} />
             <p style={{ color: '#666', fontSize: '1.1rem', marginBottom: '0.5rem' }}>No products found</p>
             <p style={{ color: '#999', fontSize: '0.9rem' }}>
               {searchTerm || selectedCategory 

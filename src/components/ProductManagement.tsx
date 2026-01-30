@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { supabase, Product } from '../lib/supabase'
+import { api, Product } from '../lib/api'
 
-const ProductManagement: React.FC = () => {
+interface ProductManagementProps {
+  onProductChange?: () => void
+}
+
+const ProductManagement: React.FC<ProductManagementProps> = ({ onProductChange }) => {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,6 +29,26 @@ const ProductManagement: React.FC = () => {
     brand: ''
   })
 
+  const generateBarcode = (productName: string) => {
+    const now = new Date()
+    const namePart = (productName || 'PRODUCT')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '-')
+      .slice(0, 12)
+    const datePart = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0')
+    ].join('')
+    const timePart = [
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0')
+    ].join('')
+    const randomPart = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+    return `${namePart}-${datePart}${timePart}-${randomPart}`
+  }
+
   useEffect(() => {
     loadProducts()
     loadCategories()
@@ -47,22 +71,10 @@ const ProductManagement: React.FC = () => {
 
   const loadProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('name')
-
-      if (error) {
-        console.error('Error loading products:', error)
-        if (error.message.includes('relation "products" does not exist')) {
-          alert('Products table does not exist. Please run the database setup first. Check DATABASE_SETUP.md for instructions.')
-        }
-        throw error
-      }
+      const data = await api.getProducts()
       setProducts(data || [])
     } catch (error) {
       console.error('Error loading products:', error)
-      // Set empty products array on error
       setProducts([])
     } finally {
       setLoading(false)
@@ -71,14 +83,8 @@ const ProductManagement: React.FC = () => {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('category')
-        .not('category', 'is', null)
-
-      if (error) throw error
-      
-      const uniqueCategories = Array.from(new Set(data?.map(item => item.category) || []))
+      const products = await api.getProducts()
+      const uniqueCategories = Array.from(new Set(products?.map(item => item.category).filter(Boolean) || []))
       setCategories(uniqueCategories.sort())
     } catch (error) {
       console.error('Error loading categories:', error)
@@ -104,9 +110,9 @@ const ProductManagement: React.FC = () => {
       category: '',
       barcode: '',
       low_stock_threshold: '',
-    cost_price: '',
-    selling_price: '',
-    brand: ''
+      cost_price: '',
+      selling_price: '',
+      brand: ''
     })
     setShowAddModal(true)
   }
@@ -132,13 +138,12 @@ const ProductManagement: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this product?')) return
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-      loadProducts()
+      await api.deleteProduct(id)
+      await loadProducts()
+      // Notify parent component to refresh products
+      if (onProductChange) {
+        onProductChange()
+      }
     } catch (error) {
       console.error('Error deleting product:', error)
       alert('Error deleting product')
@@ -163,34 +168,17 @@ const ProductManagement: React.FC = () => {
       }
 
       if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', editingProduct.id)
-
-        if (error) {
-          console.error('Update error:', error)
-          if (error.message.includes('row-level security policy')) {
-            throw new Error(`Database security policy error. Please run the FIX_RLS_POLICIES.sql script in your Supabase SQL Editor to fix this issue.`)
-          }
-          throw new Error(`Failed to update product: ${error.message}`)
-        }
+        await api.updateProduct(editingProduct.id, productData)
       } else {
-        const { error } = await supabase
-          .from('products')
-          .insert(productData)
-
-        if (error) {
-          console.error('Insert error:', error)
-          if (error.message.includes('row-level security policy')) {
-            throw new Error(`Database security policy error. Please run the FIX_RLS_POLICIES.sql script in your Supabase SQL Editor to fix this issue.`)
-          }
-          throw new Error(`Failed to create product: ${error.message}`)
-        }
+        await api.createProduct(productData)
       }
 
       setShowAddModal(false)
-      loadProducts()
+      await loadProducts()
+      // Notify parent component to refresh products
+      if (onProductChange) {
+        onProductChange()
+      }
       alert(editingProduct ? 'Product updated successfully!' : 'Product created successfully!')
     } catch (error) {
       console.error('Error saving product:', error)
@@ -344,8 +332,17 @@ const ProductManagement: React.FC = () => {
                   <input
                     type="text"
                     className="form-input"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  value={formData.name}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setFormData(prev => ({
+                      ...prev,
+                      name: value,
+                      // Auto-generate barcode only when adding a new product
+                      // and when barcode is still empty so user can override manually
+                      barcode: !editingProduct && !prev.barcode ? generateBarcode(value) : prev.barcode
+                    }))
+                  }}
                     required
                   />
                 </div>

@@ -1,0 +1,4 @@
+@echo off
+cd /d "%~dp0"
+call npm run electron:build:win
+pause

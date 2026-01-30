@@ -1,7 +1,11 @@
 {
   "name": "wumikay-ventures",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "WumiKay Ventures - Order Management System",
+  "author": "WumiKay Ventures",
+  "main": "electron/main.js",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@supabase/supabase-js": "^2.75.0",
     "@testing-library/dom": "^10.4.1",
@@ -12,6 +16,10 @@
     "@types/node": "^16.18.126",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "pg": "^8.17.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
@@ -33,7 +41,23 @@
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "server": "node server/index.js",
+    "dev": "concurrently \"npm run server\" \"npm start\"",
+    "electron": "electron .",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "bundle:server": "node scripts/bundle-server.js",
+    "clean:dist": "node clean-dist.js || echo Clean failed but continuing...",
+    "clean:dist:ps1": "powershell -ExecutionPolicy Bypass -File clean-dist.ps1",
+    "clean:dist:win": "powershell -ExecutionPolicy Bypass -File clean-dist.ps1 || node clean-dist.js || echo Clean failed but continuing...",
+    "electron:build": "npm run clean:dist && npm run bundle:server && npm run build && electron-builder",
+    "electron:build:win": "(npm run clean:dist:win || echo Clean failed, continuing...) && npm run bundle:server && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
+    "electron:build:mac": "npm run clean:dist && npm run bundle:server && npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run clean:dist && npm run bundle:server && npm run build && electron-builder --linux",
+    "pack": "electron-builder --dir",
+    "dist": "npm run clean:dist && npm run bundle:server && npm run build && electron-builder",
+    "build:server-app": "cd server-app && npm install && npm run build",
+    "build:all": "npm run electron:build:win && npm run build:server-app"
   },
   "eslintConfig": {
     "extends": [
@@ -52,5 +76,110 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.18",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
+    "esbuild": "^0.27.2",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.wumikay.ventures",
+    "productName": "WumiKay Ventures",
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
+    "asar": true,
+    "disableSanityCheckAsar": true,
+    "detectUpdateChannel": false,
+    "forceCodeSigning": false,
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "package.json",
+      "!server/**/*",
+      "!**/node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "server-bundle",
+        "to": "server-bundle",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "public/logo.png",
+        "to": "logo.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WumiKay Ventures"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "public/logo.png",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/logo.png",
+      "category": "Office"
+    }
   }
 }

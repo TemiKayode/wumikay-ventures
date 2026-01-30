@@ -1,5 +1,5 @@
 import React from 'react'
-import { Product } from '../lib/supabase'
+import { Product } from '../lib/api'
 
 interface ProductGridProps {
   products: Product[]
@@ -47,7 +47,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart }) => {
       
       {products.length === 0 && (
         <div className="text-center" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
-          <img src="/logo.png" alt="No products" style={{ width: '60px', height: '60px', opacity: 0.3, marginBottom: '1rem' }} />
+          <img src={((): string => { try { const s = localStorage.getItem('wumikay-settings'); if (s) { const p = JSON.parse(s); return p.logoUrl || (p.companyInfo && p.companyInfo.logoUrl) || '/logo.png' } } catch(e){} return '/logo.png' })()} alt="No products" style={{ width: '60px', height: '60px', opacity: 0.3, marginBottom: '1rem' }} />
           <p style={{ color: '#666', fontSize: '1.1rem' }}>No products available</p>
         </div>
       )}

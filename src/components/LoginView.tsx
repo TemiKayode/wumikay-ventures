@@ -1,14 +1,30 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface LoginViewProps {
-  onLogin: (email: string, password: string) => void
+  onLogin: (email: string, password: string, rememberMe: boolean) => void
   onSwitchToRegister: () => void
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSwitchToRegister }) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
+
+  // Load saved email if available (for convenience)
+  useEffect(() => {
+    try {
+      const savedSession = localStorage.getItem('wumikay-user-session')
+      if (savedSession) {
+        const session = JSON.parse(savedSession)
+        if (session.email) {
+          setEmail(session.email)
+        }
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -16,7 +32,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSwitchToRegister }) =>
 
     setLoading(true)
     try {
-      await onLogin(email, password)
+      await onLogin(email, password, rememberMe)
     } finally {
       setLoading(false)
     }
@@ -25,7 +41,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSwitchToRegister }) =>
   return (
     <div className="form-container">
       <div className="text-center mb-3">
-        <img src="/logo.png" alt="Wumikay Ventures" style={{ width: '60px', height: '60px', marginBottom: '1rem' }} />
+          <img src={(() => { try { const s = localStorage.getItem('wumikay-settings'); if (s) { const p = JSON.parse(s); return p.logoUrl || (p.companyInfo && p.companyInfo.logoUrl) || '/logo.png' } } catch(e){} return '/logo.png' })()} alt="Wumikay Ventures" style={{ width: '80px', height: 'auto', marginBottom: '1rem', maxHeight: '80px' }} 
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+          }}
+        />
         <h2 className="form-title">Wumikay Ventures</h2>
         <p style={{ color: '#666' }}>Beverage Order Management System</p>
       </div>
@@ -53,6 +74,19 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSwitchToRegister }) =>
             required
             placeholder="Enter your password"
           />
+        </div>
+        
+        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          />
+          <label htmlFor="rememberMe" style={{ cursor: 'pointer', color: '#555', fontSize: '0.95rem' }}>
+            Remember me (auto-login next time)
+          </label>
         </div>
         
         <button 

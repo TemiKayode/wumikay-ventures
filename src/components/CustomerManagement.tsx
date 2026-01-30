@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { supabase, Order } from '../lib/supabase'
+import { api, Order } from '../lib/api'
 
 interface Customer {
   email: string
@@ -7,6 +7,8 @@ interface Customer {
   phone?: string
   totalOrders: number
   totalSpent: number
+  totalPaid: number
+  outstandingBalance: number
   lastOrderDate: string
   orders: Order[]
 }
@@ -22,12 +24,7 @@ const CustomerManagement: React.FC = () => {
 
   const loadCustomers = async () => {
     try {
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('order_date', { ascending: false })
-
-      if (error) throw error
+      const orders = await api.getOrders()
 
       // Group orders by customer
       const customerMap = new Map<string, Customer>()
@@ -44,6 +41,8 @@ const CustomerManagement: React.FC = () => {
             phone,
             totalOrders: 0,
             totalSpent: 0,
+            totalPaid: 0,
+            outstandingBalance: 0,
             lastOrderDate: order.order_date,
             orders: []
           })
@@ -52,6 +51,11 @@ const CustomerManagement: React.FC = () => {
         const customer = customerMap.get(email)!
         customer.totalOrders += 1
         customer.totalSpent += order.total_amount
+        // Track payments - use amount_paid if available, otherwise assume full payment
+        const amountPaid = (order as any).amount_paid ?? order.total_amount
+        const amountDue = (order as any).amount_due ?? 0
+        customer.totalPaid += amountPaid
+        customer.outstandingBalance += amountDue
         customer.orders.push(order)
         
         // Update last order date if this order is more recent
@@ -122,9 +126,17 @@ const CustomerManagement: React.FC = () => {
                 <span className="stat-value">{formatPrice(customer.totalSpent)}</span>
               </div>
               <div className="stat">
-                <span className="stat-label">Last Order</span>
-                <span className="stat-value">{formatDate(customer.lastOrderDate)}</span>
+                <span className="stat-label">Total Paid</span>
+                <span className="stat-value" style={{ color: '#22c55e' }}>{formatPrice(customer.totalPaid)}</span>
               </div>
+              {customer.outstandingBalance > 0 && (
+                <div className="stat" style={{ background: '#fef3c7', padding: '0.5rem', borderRadius: '8px' }}>
+                  <span className="stat-label" style={{ color: '#92400e' }}>Outstanding</span>
+                  <span className="stat-value" style={{ color: '#dc2626', fontWeight: 'bold' }}>
+                    {formatPrice(customer.outstandingBalance)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="customer-actions">
@@ -159,26 +171,65 @@ const CustomerManagement: React.FC = () => {
                   <span className="summary-value">{formatPrice(selectedCustomer.totalSpent)}</span>
                 </div>
                 <div className="summary-item">
-                  <span className="summary-label">Average Order:</span>
-                  <span className="summary-value">
-                    {formatPrice(selectedCustomer.totalSpent / selectedCustomer.totalOrders)}
+                  <span className="summary-label">Total Paid:</span>
+                  <span className="summary-value" style={{ color: '#22c55e' }}>
+                    {formatPrice(selectedCustomer.totalPaid)}
                   </span>
                 </div>
+                {selectedCustomer.outstandingBalance > 0 && (
+                  <div className="summary-item" style={{ background: '#fef3c7', padding: '0.75rem', borderRadius: '8px' }}>
+                    <span className="summary-label" style={{ color: '#92400e', fontWeight: '600' }}>
+                      ⚠️ Outstanding Balance:
+                    </span>
+                    <span className="summary-value" style={{ color: '#dc2626', fontWeight: 'bold', fontSize: '1.25rem' }}>
+                      {formatPrice(selectedCustomer.outstandingBalance)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="orders-list">
-                {selectedCustomer.orders.map((order) => (
-                  <div key={order.id} className="order-item">
-                    <div className="order-info">
-                      <span className="order-number">#{order.order_number}</span>
-                      <span className="order-date">{formatDate(order.order_date)}</span>
-                      <span className={`order-status ${order.status.toLowerCase()}`}>
-                        {order.status}
-                      </span>
+                {selectedCustomer.orders.map((order) => {
+                  const orderAny = order as any
+                  const amountPaid = orderAny.amount_paid ?? order.total_amount
+                  const amountDue = orderAny.amount_due ?? 0
+                  const paymentStatus = orderAny.payment_status ?? 'paid'
+                  
+                  return (
+                    <div key={order.id} className="order-item" style={{ 
+                      borderLeft: amountDue > 0 ? '4px solid #f59e0b' : '4px solid #22c55e',
+                      paddingLeft: '1rem'
+                    }}>
+                      <div className="order-info">
+                        <span className="order-number">#{order.order_number}</span>
+                        <span className="order-date">{formatDate(order.order_date)}</span>
+                        <span className={`order-status ${order.status.toLowerCase()}`}>
+                          {order.status}
+                        </span>
+                        {paymentStatus !== 'paid' && (
+                          <span style={{
+                            padding: '2px 8px',
+                            background: paymentStatus === 'partial' ? '#f59e0b' : '#ef4444',
+                            color: 'white',
+                            borderRadius: '12px',
+                            fontSize: '0.7rem',
+                            fontWeight: '600'
+                          }}>
+                            {paymentStatus === 'partial' ? 'PARTIAL' : 'UNPAID'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div className="order-amount">{formatPrice(order.total_amount)}</div>
+                        {amountDue > 0 && (
+                          <div style={{ fontSize: '0.8rem', color: '#dc2626' }}>
+                            Due: {formatPrice(amountDue)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="order-amount">{formatPrice(order.total_amount)}</div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

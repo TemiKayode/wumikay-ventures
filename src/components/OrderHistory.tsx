@@ -1,6 +1,7 @@
-import React from 'react'
-import { Order } from '../lib/supabase'
+import React, { useEffect } from 'react'
+import { Order } from '../lib/api'
 import { printReceipt, generateReceiptData } from '../utils/receiptPrinter'
+import { getSavedLogoUrl } from '../utils/settings'
 
 interface OrderHistoryProps {
   orders: Order[]
@@ -11,11 +12,26 @@ interface OrderHistoryProps {
     phone: string
     email: string
   }
+  onRefresh?: () => void
+  loading?: boolean
 }
 
-const OrderHistory: React.FC<OrderHistoryProps> = ({ orders, onPrintReceipt, companyInfo }) => {
+const OrderHistory: React.FC<OrderHistoryProps> = ({ orders, onPrintReceipt, companyInfo, onRefresh, loading }) => {
   console.log('OrderHistory: Received orders:', orders?.length || 0)
   console.log('OrderHistory: Orders data:', orders)
+  
+  // Trigger auto-print via IPC when orders are displayed and environment requests it
+  useEffect(() => {
+    try {
+      if (process.env.REACT_APP_PRINT_DEMO === '1' || (window as any).electronAPI?.triggerAutoPrint) {
+        setTimeout(() => {
+          (window as any).electronAPI?.triggerAutoPrint?.();
+        }, 1000);
+      }
+    } catch (e) {
+      console.warn('Auto-print trigger failed:', e);
+    }
+  }, [orders]);
   
   const formatPrice = (price: number) => {
     return `₦${price.toLocaleString()}`
@@ -43,28 +59,55 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ orders, onPrintReceipt, com
   }
 
   const handlePrintReceipt = (order: Order) => {
-    // Convert order items to cart format for receipt generation
-    const cartItems = order.items?.map(item => ({
-      id: item.product_id,
-      name: item.product_name,
-      price: item.unit_price,
-      quantity: item.quantity
-    })) || []
+    try {
+      // Convert order items to cart format for receipt generation
+      const cartItems = order.items?.map(item => ({
+        id: item.product_id,
+        name: item.product_name,
+        price: item.unit_price,
+        quantity: item.quantity
+      })) || []
 
-    const receiptData = generateReceiptData(order, cartItems, companyInfo)
-    printReceipt(receiptData)
+      if (cartItems.length === 0) {
+        alert('Cannot print receipt: Order has no items')
+        return
+      }
+
+      const receiptData = generateReceiptData(order, cartItems, companyInfo)
+      printReceipt(receiptData)
+    } catch (error) {
+      console.error('Error printing receipt:', error)
+      alert('Failed to print receipt. Please try again.')
+    }
   }
 
   return (
     <div className="order-history">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Order History</h2>
-        <span className="text-muted">{orders.length} orders</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span className="text-muted">{orders.length} orders</span>
+          {onRefresh && (
+            <button 
+              className="btn btn-outline"
+              onClick={onRefresh}
+              disabled={loading}
+              style={{ padding: '0.5rem 1rem' }}
+            >
+              {loading ? '⏳ Loading...' : '🔄 Refresh'}
+            </button>
+          )}
+        </div>
       </div>
       
-          {orders.length === 0 ? (
+      {loading ? (
+        <div className="text-center" style={{ padding: '3rem 0' }}>
+          <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+          <p style={{ color: '#666' }}>Loading orders...</p>
+        </div>
+      ) : orders.length === 0 ? (
             <div className="text-center" style={{ padding: '3rem 0' }}>
-              <img src="/logo.png" alt="No orders" style={{ width: '60px', height: '60px', opacity: 0.3, marginBottom: '1rem' }} />
+              <img src={getSavedLogoUrl()} alt="No orders" style={{ width: '60px', height: '60px', opacity: 0.3, marginBottom: '1rem' }} />
               <h3 style={{ color: '#666', marginBottom: '0.5rem' }}>No Orders Yet</h3>
               <p style={{ color: '#999' }}>Your order history will appear here</p>
             </div>
@@ -123,15 +166,23 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ orders, onPrintReceipt, com
               <div className="order-totals">
                 <div className="total-row">
                   <span>Subtotal:</span>
-                  <span>{formatPrice(order.total_amount - order.tax_amount)}</span>
+                  <span>{formatPrice(order.subtotal_amount || (order.total_amount - (order.pos_charge || 0) - (order.tax_amount || 0)))}</span>
                 </div>
-                <div className="total-row">
-                  <span>Tax:</span>
-                  <span>{formatPrice(order.tax_amount)}</span>
-                </div>
+                {(order.pos_charge || 0) > 0 && (
+                  <div className="total-row pos-charge">
+                    <span>POS Charge:</span>
+                    <span>{formatPrice(order.pos_charge || 0)}</span>
+                  </div>
+                )}
+                {(order.tax_amount || 0) > 0 && (
+                  <div className="total-row">
+                    <span>Tax:</span>
+                    <span>{formatPrice(order.tax_amount || 0)}</span>
+                  </div>
+                )}
                 <div className="total-row total-final">
                   <span>Total:</span>
-                  <span>{formatPrice(order.total_amount)}</span>
+                  <span>{formatPrice(order.total_amount || 0)}</span>
                 </div>
               </div>
               
@@ -139,6 +190,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ orders, onPrintReceipt, com
                 <button 
                   className="btn btn-outline"
                   onClick={() => handlePrintReceipt(order)}
+                  title="Print receipt for this order"
                 >
                   🖨️ Print Receipt
                 </button>

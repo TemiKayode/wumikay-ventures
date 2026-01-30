@@ -1,17 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { api } from '../lib/api'
 
-const Settings: React.FC = () => {
+interface CompanyInfo {
+  name: string
+  address: string
+  phone: string
+  email: string
+  logoUrl?: string
+}
+
+interface SettingsProps {
+  companyInfo: CompanyInfo
+  onCompanyInfoUpdate: (info: CompanyInfo) => void
+  currentUser?: { id: number; email: string; role: string } | null
+}
+
+const Settings: React.FC<SettingsProps> = ({ companyInfo, onCompanyInfoUpdate, currentUser }) => {
+  // Check if current user is an admin
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.email?.includes('admin')
+  const [systemInfo, setSystemInfo] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    lastBackup: 'Never',
+    databaseStatus: 'Checking...'
+  })
   const [settings, setSettings] = useState({
-    companyName: 'WumiKay Ventures',
-    companyEmail: 'Kayodeomowumii@gmail.com',
-    companyPhone: '08033683156, 07050509775',
-    companyAddress: 'Beside Enuogbope Hospital, Kobongbogboe, Osogbo, Osun State',
+    companyName: companyInfo.name,
+    companyEmail: companyInfo.email,
+    companyPhone: companyInfo.phone,
+    companyAddress: companyInfo.address,
+    logoUrl: '/logo.png',
+    brandColor: '#667eea',
     lowStockThreshold: 10,
     currency: 'NGN',
     currencySymbol: '₦',
     posChargeAmount: 150,
     taxRate: 0,
-    receiptFooter: 'Thank you for your business!',
+    receiptFooter: 'Thank you for shopping with WumiKay Ventures!\nWe appreciate your business.\nVisit us again!',
     themeSettings: 'system-default',
     receiptSettings: {
       showLogo: true,
@@ -47,25 +72,336 @@ const Settings: React.FC = () => {
     }
   })
 
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('wumikay-settings')
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings)
+        setSettings(prev => ({
+          ...prev,
+          ...parsed
+        }))
+      } catch (error) {
+        console.error('Error loading settings from localStorage:', error)
+      }
+    }
+    
+    // Load system info
+    loadSystemInfo()
+    
+    // Check last backup
+    const lastBackup = localStorage.getItem('wumikay-last-backup')
+    if (lastBackup) {
+      setSystemInfo(prev => ({ ...prev, lastBackup }))
+    }
+  }, []) // Only run on mount
+
+  const loadSystemInfo = async () => {
+    try {
+      const products = await api.getProducts()
+      const orders = await api.getOrders()
+      setSystemInfo(prev => ({
+        ...prev,
+        totalProducts: products?.length || 0,
+        totalOrders: orders?.length || 0,
+        databaseStatus: 'Connected'
+      }))
+    } catch (error) {
+      console.error('Error loading system info:', error)
+      setSystemInfo(prev => ({
+        ...prev,
+        databaseStatus: 'Disconnected'
+      }))
+    }
+  }
+
+  // Update local settings when companyInfo prop changes
+  useEffect(() => {
+    setSettings(prev => ({
+      ...prev,
+      companyName: companyInfo.name,
+      companyEmail: companyInfo.email,
+      companyPhone: companyInfo.phone,
+      companyAddress: companyInfo.address
+    }))
+  }, [companyInfo])
+
   const handleSave = () => {
-    // In a real app, this would save to the database
-    localStorage.setItem('wumikay-settings', JSON.stringify(settings))
+    // Update company info in parent component
+    onCompanyInfoUpdate({
+      name: settings.companyName,
+      email: settings.companyEmail,
+      phone: settings.companyPhone,
+      address: settings.companyAddress
+    })
+    
+    // Save other settings to localStorage
+    const otherSettings = {
+      lowStockThreshold: settings.lowStockThreshold,
+      currency: settings.currency,
+      currencySymbol: settings.currencySymbol,
+      posChargeAmount: settings.posChargeAmount,
+      taxRate: settings.taxRate,
+      receiptFooter: settings.receiptFooter,
+      themeSettings: settings.themeSettings,
+      receiptSettings: settings.receiptSettings,
+      brandColor: settings.brandColor,
+      logoUrl: settings.logoUrl,
+      companyInfo: {
+        name: settings.companyName,
+        email: settings.companyEmail,
+        phone: settings.companyPhone,
+        address: settings.companyAddress
+      },
+      notifications: settings.notifications,
+      userManagement: settings.userManagement,
+      dataManagement: settings.dataManagement
+    }
+    localStorage.setItem('wumikay-settings', JSON.stringify(otherSettings))
+    // Notify other parts of the app that settings changed
+    try {
+      window.dispatchEvent(new CustomEvent('wumikay-settings-changed', { detail: otherSettings }))
+    } catch (e) {
+      console.warn('Failed to dispatch settings changed event', e)
+    }
+
     alert('Settings saved successfully!')
+  }
+
+  // Export Data Function
+  const handleExportData = async () => {
+    try {
+      const products = await api.getProducts()
+      const orders = await api.getOrders()
+      
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        companyInfo: companyInfo,
+        settings: settings,
+        products: products || [],
+        orders: orders || []
+      }
+      
+      let fileContent: string
+      let fileName: string
+      let mimeType: string
+      
+      const format = settings.dataManagement.exportFormat
+      
+      if (format === 'json') {
+        fileContent = JSON.stringify(exportData, null, 2)
+        fileName = `wumikay-backup-${new Date().toISOString().split('T')[0]}.json`
+        mimeType = 'application/json'
+      } else if (format === 'csv') {
+        // Export products as CSV
+        const productHeaders = ['ID', 'Name', 'Description', 'Price', 'Quantity', 'Category', 'Barcode', 'Brand']
+        const productRows = (products || []).map((p: any) => 
+          [p.id, p.name, p.description || '', p.price, p.quantity, p.category, p.barcode || '', p.brand || ''].join(',')
+        )
+        fileContent = [productHeaders.join(','), ...productRows].join('\n')
+        fileName = `wumikay-products-${new Date().toISOString().split('T')[0]}.csv`
+        mimeType = 'text/csv'
+      } else {
+        // Default to JSON
+        fileContent = JSON.stringify(exportData, null, 2)
+        fileName = `wumikay-backup-${new Date().toISOString().split('T')[0]}.json`
+        mimeType = 'application/json'
+      }
+      
+      // Create and download file
+      const blob = new Blob([fileContent], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      alert(`Data exported successfully as ${format.toUpperCase()}!`)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Failed to export data. Please try again.')
+    }
+  }
+  
+  // Import Data Function
+  const handleImportData = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,.csv'
+    
+    input.onchange = async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      
+      try {
+        const content = await file.text()
+        
+        if (file.name.endsWith('.json')) {
+          const importData = JSON.parse(content)
+          
+          // Validate JSON structure
+          if (!importData.products && !importData.orders) {
+            alert('Invalid backup file format. Missing products or orders data.')
+            return
+          }
+          
+          const confirmImport = window.confirm(
+            `This will import:\n` +
+            `- ${importData.products?.length || 0} products\n` +
+            `- ${importData.orders?.length || 0} orders\n\n` +
+            `Company Info: ${importData.companyInfo?.name || 'N/A'}\n\n` +
+            `Do you want to proceed?`
+          )
+          
+          if (confirmImport) {
+            // Update company info if present
+            if (importData.companyInfo) {
+              onCompanyInfoUpdate(importData.companyInfo)
+            }
+            
+            // Update settings if present
+            if (importData.settings) {
+              localStorage.setItem('wumikay-settings', JSON.stringify(importData.settings))
+            }
+            
+            alert('Data imported successfully! Note: Products and orders need to be imported via the database directly.')
+          }
+        } else if (file.name.endsWith('.csv')) {
+          alert('CSV import is for viewing only. For full data import, please use JSON format.')
+        }
+      } catch (error) {
+        console.error('Import error:', error)
+        alert('Failed to import data. Please check the file format.')
+      }
+    }
+    
+    input.click()
+  }
+  
+  // Create Backup Function
+  const handleCreateBackup = async () => {
+    try {
+      const products = await api.getProducts()
+      const orders = await api.getOrders()
+      
+      const backupData = {
+        backupDate: new Date().toISOString(),
+        version: '1.0.0',
+        companyInfo: companyInfo,
+        settings: settings,
+        data: {
+          products: products || [],
+          orders: orders || [],
+          totalProducts: products?.length || 0,
+          totalOrders: orders?.length || 0
+        }
+      }
+      
+      // Create backup file
+      const backupContent = JSON.stringify(backupData, null, 2)
+      const fileName = `wumikay-full-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+      
+      const blob = new Blob([backupContent], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      // Update last backup time
+      const backupTime = new Date().toLocaleString()
+      localStorage.setItem('wumikay-last-backup', backupTime)
+      setSystemInfo(prev => ({ ...prev, lastBackup: backupTime }))
+      
+      alert(`Backup created successfully!\n\nFile: ${fileName}\n\nContains:\n- ${backupData.data.totalProducts} products\n- ${backupData.data.totalOrders} orders`)
+    } catch (error) {
+      console.error('Backup error:', error)
+      alert('Failed to create backup. Please try again.')
+    }
+  }
+
+  // Clear Test Data Function - Removes all orders and test users
+  const handleClearTestData = async () => {
+    const confirmClear = window.confirm(
+      '⚠️ CLEAR TEST DATA\n\n' +
+      'This will permanently delete:\n' +
+      '• All orders and order items\n' +
+      '• All non-admin users\n\n' +
+      'Products will be KEPT.\n' +
+      'Admin user will be KEPT.\n\n' +
+      'This action cannot be undone!\n\n' +
+      'Are you sure you want to proceed?'
+    )
+    
+    if (!confirmClear) return
+    
+    // Double confirmation for safety
+    const doubleConfirm = window.confirm(
+      '🚨 FINAL CONFIRMATION\n\n' +
+      'You are about to delete ALL test data.\n\n' +
+      'Click OK to proceed with clearing data.'
+    )
+    
+    if (!doubleConfirm) return
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/reset-database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        alert(
+          '✅ Test Data Cleared Successfully!\n\n' +
+          `Products remaining: ${result.productsRemaining}\n` +
+          `Users remaining: ${result.usersRemaining} (admin only)\n\n` +
+          'The app is now ready for production use.'
+        )
+        // Refresh system info
+        loadSystemInfo()
+      } else {
+        alert('❌ Failed to clear test data: ' + (result.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Clear test data error:', error)
+      alert('❌ Failed to clear test data. Please ensure the server is running.')
+    }
   }
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all settings to default?')) {
+      const defaultCompanyInfo = {
+        name: 'WumiKay Ventures',
+        email: 'Kayodeomowumii@gmail.com',
+        phone: '08033683156, 07050509775',
+        address: 'Beside Enuogbope Hospital, Kobongbogboe, Osogbo, Osun State'
+      }
+      
+      // Reset company info in parent
+      onCompanyInfoUpdate(defaultCompanyInfo)
+      
       setSettings({
-        companyName: 'WumiKay Ventures',
-        companyEmail: 'Kayodeomowumii@gmail.com',
-        companyPhone: '08033683156, 07050509775',
-        companyAddress: 'Beside Enuogbope Hospital, Kobongbogboe, Osogbo, Osun State',
+        companyName: defaultCompanyInfo.name,
+        companyEmail: defaultCompanyInfo.email,
+        companyPhone: defaultCompanyInfo.phone,
+        companyAddress: defaultCompanyInfo.address,
+        logoUrl: '/logo.png',
+        brandColor: '#667eea',
         lowStockThreshold: 10,
         currency: 'NGN',
         currencySymbol: '₦',
         posChargeAmount: 150,
         taxRate: 0,
-        receiptFooter: 'Thank you for your business!',
+        receiptFooter: 'Thank you for shopping with WumiKay Ventures!\nWe appreciate your business.\nVisit us again!',
         themeSettings: 'system-default',
         receiptSettings: {
           showLogo: true,
@@ -299,7 +635,12 @@ const Settings: React.FC = () => {
               value={settings.receiptFooter}
               onChange={(e) => setSettings({...settings, receiptFooter: e.target.value})}
               placeholder="Enter custom footer message for receipts..."
+              rows={3}
+              style={{ resize: 'vertical', minHeight: '80px' }}
             />
+            <small style={{ color: '#666', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+              This message appears at the bottom of all printed receipts. Use \n for new lines.
+            </small>
           </div>
         </div>
 
@@ -403,8 +744,10 @@ const Settings: React.FC = () => {
               >
                 <option value="customer">Customer</option>
                 <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
               </select>
+              <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                Note: Admin role is reserved for admin@wumikay.com only
+              </small>
             </div>
             <div className="form-group">
               <label className="form-label">Session Timeout (minutes)</label>
@@ -567,10 +910,63 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="data-actions">
-            <button className="btn btn-outline">Export Data</button>
-            <button className="btn btn-outline">Import Data</button>
-            <button className="btn btn-outline">Create Backup</button>
+            <button 
+              className="btn btn-outline"
+              onClick={handleExportData}
+              disabled={!settings.dataManagement.allowDataExport}
+              title={!settings.dataManagement.allowDataExport ? 'Data export is disabled' : 'Export all data'}
+            >
+              📤 Export Data
+            </button>
+            <button 
+              className="btn btn-outline"
+              onClick={handleImportData}
+              disabled={!settings.dataManagement.allowDataImport}
+              title={!settings.dataManagement.allowDataImport ? 'Data import is disabled' : 'Import data from file'}
+            >
+              📥 Import Data
+            </button>
+            <button 
+              className="btn btn-primary"
+              onClick={handleCreateBackup}
+              title="Create a full backup of all data"
+            >
+              💾 Create Backup
+            </button>
           </div>
+          
+          {/* Clear Test Data Section - Admin Only */}
+          {isAdmin && (
+            <div className="danger-zone" style={{ 
+              marginTop: '2rem', 
+              padding: '1.5rem', 
+              background: 'rgba(220, 53, 69, 0.1)', 
+              borderRadius: '12px',
+              border: '1px solid rgba(220, 53, 69, 0.3)'
+            }}>
+              <h4 style={{ color: '#dc3545', marginBottom: '0.5rem' }}>🚨 Danger Zone (Admin Only)</h4>
+              <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                Clear all test data to prepare the app for production use. 
+                This will delete all orders and non-admin users while keeping your products.
+              </p>
+              <button 
+                className="btn"
+                onClick={handleClearTestData}
+                style={{ 
+                  background: '#dc3545', 
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+                title="Clear all test orders and non-admin users"
+              >
+                🗑️ Clear Test Data & Reset App
+              </button>
+            </div>
+          )}
         </div>
 
         {/* System Information */}
@@ -583,17 +979,40 @@ const Settings: React.FC = () => {
             </div>
             <div className="info-item">
               <span className="info-label">Database Status:</span>
-              <span className="info-value status-connected">Connected</span>
+              <span className={`info-value ${systemInfo.databaseStatus === 'Connected' ? 'status-connected' : 'status-disconnected'}`}>
+                {systemInfo.databaseStatus}
+              </span>
             </div>
             <div className="info-item">
               <span className="info-label">Last Backup:</span>
-              <span className="info-value">Never</span>
+              <span className="info-value">{systemInfo.lastBackup}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Total Products:</span>
-              <span className="info-value">Loading...</span>
+              <span className="info-value">{systemInfo.totalProducts}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Total Orders:</span>
+              <span className="info-value">{systemInfo.totalOrders}</span>
             </div>
           </div>
+          <div style={{ marginTop: '1rem' }}>
+            <button 
+              className="btn btn-outline"
+              onClick={loadSystemInfo}
+              title="Refresh system information"
+            >
+              🔄 Refresh System Info
+            </button>
+          </div>
+        </div>
+
+        {/* Author / Trademark */}
+        <div className="settings-section app-trademark-section" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+          <p className="app-trademark-text" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>WumiKay Ventures</span>
+            {' © '}{new Date().getFullYear()}. All rights reserved. Trademark of WumiKay Ventures.
+          </p>
         </div>
       </div>
     </div>

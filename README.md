@@ -1,125 +1,72 @@
 # WumiKay Ventures - Order Management System
 
-A modern, secure order management system built with React, TypeScript, and Supabase for WumiKay Ventures beverage business.
+A modern desktop application for beverage order management, built with Electron, React, and PostgreSQL.
 
-## 🚀 Features
+**Author / Copyright:** WumiKay Ventures © 2025. All rights reserved. WumiKay Ventures is a trademark of WumiKay Ventures.
 
-- **Product Management**: Add, edit, and manage beverage products
-- **Order Processing**: Complete order management with receipt printing
+## Features
+
+- **Product Management**: Add, edit, and manage your product inventory
+- **Order Processing**: Create and track customer orders
+- **Receipt Printing**: Generate and print professional receipts
+- **Reports & Analytics**: View sales reports and business analytics
 - **Customer Management**: Track customer information and order history
-- **Real-time Dashboard**: Live statistics and order monitoring
-- **Secure Authentication**: User login and role-based access
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Receipt Printing**: Automatic receipt generation for orders
+- **Data Backup**: Export and import your business data
+- **Offline Support**: Works without internet connection (local database)
 
-## 🛡️ Security Features
+## Installation
 
-- **Environment Variables**: All sensitive data stored in environment variables
-- **Row Level Security (RLS)**: Database-level security policies
-- **Input Validation**: Comprehensive form validation
-- **HTTPS Only**: Secure data transmission
-- **No Hardcoded Secrets**: All API keys and credentials externalized
+### Windows
+1. Download `WumiKay Ventures Setup 1.0.0.exe` from the releases
+2. Run the installer and follow the prompts
+3. Launch from Desktop or Start Menu
 
-## 🛠️ Tech Stack
+### Portable Version
+1. Download `WumiKay Ventures 1.0.0.exe`
+2. Run directly - no installation needed
 
-- **Frontend**: React 18, TypeScript, CSS3
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
-- **State Management**: React Hooks
-- **Styling**: Custom CSS with responsive design
-- **Build Tool**: Create React App
+## First Time Setup
 
-## 📋 Prerequisites
+1. Launch the application
+2. Register a new account or contact administrator for credentials
+3. Configure your business settings in Settings > Business Information
+4. Add your products in Product Management
+5. Start processing orders!
 
-- Node.js 16+ 
-- npm or yarn
-- Supabase account
+## Database Setup
 
-## 🚀 Quick Start
+The application requires PostgreSQL database:
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd wumikay-ventures
-   ```
+1. Install PostgreSQL
+2. Create database: `wumikay_ventures`
+3. Run the schema from `database/schema.sql`
+4. Configure connection in `server/.env`
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## Development
 
-3. **Set up environment variables**
-   Create a `.env.local` file in the root directory:
-   ```env
-   REACT_APP_SUPABASE_URL=your_supabase_url
-   REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+```bash
+# Install dependencies
+npm install
 
-4. **Start the development server**
-   ```bash
-   npm start
-   ```
+# Run in development mode
+npm run electron:dev
 
-5. **Open your browser**
-   Navigate to `http://localhost:3000`
+# Build for Windows
+npm run electron:build:win
+```
 
-## 🗄️ Database Setup
+## Support
 
-The application uses Supabase as the backend. The database schema includes:
+For support or issues, contact WumiKay Ventures.
 
-- **Products**: Beverage inventory management
-- **Orders**: Order tracking and management
-- **Order Items**: Individual order line items
-- **Users**: User authentication and management
+## Pushing to GitHub
 
-Database setup is handled automatically through the application.
+Before pushing, ensure:
 
-## 🔐 Security Considerations
+- No `.env` or `server/.env` files are committed (use `server/.env.example` as a template)
+- No `build/`, `dist/`, or `dist-live/` folders are committed
+- Secrets (DB passwords, API keys) are only in local `.env` files
 
-- **API Keys**: Never commit API keys to version control
-- **Environment Variables**: Use `.env.local` for local development
-- **RLS Policies**: Database access is controlled by Row Level Security
-- **Input Sanitization**: All user inputs are validated and sanitized
-- **HTTPS**: Always use HTTPS in production
+## License
 
-## 📱 Usage
-
-1. **Login**: Use the demo credentials or create a new account
-2. **Products**: Browse and manage beverage inventory
-3. **Orders**: Process customer orders with receipt printing
-4. **Dashboard**: Monitor business statistics and recent orders
-5. **Settings**: Configure business information and preferences
-
-## 🚀 Deployment
-
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
-
-2. **Deploy to your hosting platform**
-   - Vercel (recommended)
-   - Netlify
-   - AWS S3 + CloudFront
-   - Any static hosting service
-
-3. **Configure environment variables** in your hosting platform
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is proprietary software for WumiKay Ventures.
-
-## 🆘 Support
-
-For support and questions, contact the development team.
-
----
-
-**⚠️ Security Notice**: This application handles sensitive business data. Always follow security best practices and keep your API keys secure.
+See [LICENSE](LICENSE). MIT License. WumiKay Ventures © 2025.
